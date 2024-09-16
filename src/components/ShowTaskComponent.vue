@@ -61,7 +61,7 @@
 </template>
 
 <script setup>
-import { ref, onBeforeMount } from 'vue';
+import { ref, onBeforeMount, watch } from 'vue';
 import { useTodoStore } from "../stores/useTodoStore";
 import api from "../api";
 import { useToast } from 'vue-toast-notification';
@@ -77,6 +77,10 @@ const editTask = ref('');
 onBeforeMount(async () => {
   await fetchTodos();
 });
+
+watch(() => todoStore.todo, (newTodos) => {
+  todoList.value = newTodos;
+}, { deep: true });
 
 const fetchTodos = async () => {
   try {
@@ -128,7 +132,6 @@ const changeStatus = async (id, status) => {
     const response = await api.patch('/changeTaskStatus/' + id, { "status": changedStatus });
     if (response.data.status) {
       $toast.success(TODO_STATUS_CHANGED);
-      // Update the status in the local list
       const todo = todoList.value.find(todo => todo.id === id);
       if (todo) todo.status = changedStatus;
     } else {

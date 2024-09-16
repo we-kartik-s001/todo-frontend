@@ -16,5 +16,10 @@ export const useTodoStore = defineStore('todo',() => {
             error = error.response
         }
     }
-    return {todo,getTodoList}
+    const updateTodoList = (list) => {
+        todo.value = list;
+        console.log('list',list)
+        console.log('now',todo)
+    }
+    return {todo,getTodoList, updateTodoList}
 })

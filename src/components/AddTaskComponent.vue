@@ -25,6 +25,7 @@
   import 'vue-toast-notification/dist/theme-sugar.css';
   import {TODO_CREATED} from "../constants";
   import {ERROR_PROCESSING} from "../constants";
+  import {useTodoStore} from "../stores/useTodoStore";
   name: "AddTaskComponent";
   const $toast = useToast();
   let tableContent = null;
@@ -32,13 +33,14 @@
     title: '',
     status: 1
   })
+  const todoStore = useTodoStore();
   const submitForm = async () => {
     try {
       const response = await api.post('/createTask',taskdata.value);
       let todo = response.data.task;
       if(response.data.status){
-        console.log(todo)
         $toast.success(TODO_CREATED)
+        todoStore.updateTodoList(todo);
       }else{
         $toast.error(ERROR_PROCESSING)
       }
@@ -53,5 +55,4 @@
     taskdata.value.title = '';
     taskdata.value.status = 1;
   }
-
 </script>
