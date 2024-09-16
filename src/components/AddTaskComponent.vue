@@ -23,7 +23,7 @@
   import {ref} from "vue";
   import {useToast} from 'vue-toast-notification';
   import 'vue-toast-notification/dist/theme-sugar.css';
-  import {TASK_CREATED} from "../constants";
+  import {TODO_CREATED} from "../constants";
   import {ERROR_PROCESSING} from "../constants";
   name: "AddTaskComponent";
   const $toast = useToast();
@@ -38,7 +38,7 @@
       let todo = response.data.task;
       if(response.data.status){
         console.log(todo)
-        $toast.success(TASK_CREATED)
+        $toast.success(TODO_CREATED)
       }else{
         $toast.success(ERROR_PROCESSING)
       }
