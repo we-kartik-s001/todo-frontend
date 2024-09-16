@@ -65,7 +65,7 @@ import { ref, onBeforeMount } from 'vue';
 import { useTodoStore } from "../stores/useTodoStore";
 import api from "../api";
 import { useToast } from 'vue-toast-notification';
-import {ERROR_PROCESSING, TODO_DELETED, TODO_STATUS_CHANGED} from "../constants";
+import { ERROR_PROCESSING, TODO_DELETED, TODO_UPDATED, TODO_STATUS_CHANGED } from "../constants";
 import { VueToggles } from "vue-toggles";
 
 const todoStore = useTodoStore();
@@ -75,9 +75,17 @@ const editIndex = ref(null);
 const editTask = ref('');
 
 onBeforeMount(async () => {
-  await todoStore.getTodoList();
-  todoList.value = todoStore.todo;
+  await fetchTodos();
 });
+
+const fetchTodos = async () => {
+  try {
+    await todoStore.getTodoList();
+    todoList.value = todoStore.todo;
+  } catch (error) {
+    console.error(ERROR_PROCESSING);
+  }
+};
 
 const deleteTodo = async (id) => {
   try {
@@ -86,7 +94,7 @@ const deleteTodo = async (id) => {
       $toast.success(TODO_DELETED);
       todoList.value = todoList.value.filter(todo => todo.id !== id);
     } else {
-      console.log('Error deleting todo');
+      $toast.error('Error deleting todo');
     }
   } catch (error) {
     console.error('Error:', error.response);
@@ -106,11 +114,11 @@ const saveUpdate = async (id, index) => {
       todoList.value[index].task = editTask.value;
       editIndex.value = null;
     } else {
-      console.log(ERROR_PROCESSING);
+      $toast.error(ERROR_PROCESSING);
     }
   } catch (error) {
-    error = error.response
-    $toast.error(error.data.message);
+    console.error('Error:', error.response);
+    $toast.error(error.response.data.message);
   }
 };
 
@@ -120,8 +128,11 @@ const changeStatus = async (id, status) => {
     const response = await api.patch('/changeTaskStatus/' + id, { "status": changedStatus });
     if (response.data.status) {
       $toast.success(TODO_STATUS_CHANGED);
+      // Update the status in the local list
+      const todo = todoList.value.find(todo => todo.id === id);
+      if (todo) todo.status = changedStatus;
     } else {
-      console.log('Error changing status');
+      $toast.error('Error changing status');
     }
   } catch (error) {
     console.error('Error:', error.response);
