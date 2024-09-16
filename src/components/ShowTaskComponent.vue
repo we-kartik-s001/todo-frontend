@@ -1,28 +1,59 @@
 <template>
   <div v-if="todoList.length > 0">
-  <table class="table mb-4">
-    <thead>
-    <tr>
-      <th scope="col">No.</th>
-      <th scope="col">Todo item</th>
-      <th scope="col">Status</th>
-      <th scope="col">Actions</th>
-    </tr>
-    </thead>
-    <tbody>
-<!--    {{todoList}}-->
-    <tr v-for="(todo, index) in todoList" :key="index">
-      <th scope="row">{{index + 1}}</th>
-      <td>{{todo.task}}</td>
-      <td>
-        <VueToggles :value="todo.status ? true : false" @click="changeStatus(todo.id,todo.status)" width="50"/>
-      </td>
-      <td>
-        <button type="submit" data-mdb-button-init data-mdb-ripple-init class="btn btn-sm btn-danger mr-1" @click="deleteTodo(todo.id)">Delete</button>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+    <table class="table mb-4">
+      <thead>
+      <tr>
+        <th scope="col">No.</th>
+        <th scope="col">Todo item</th>
+        <th scope="col">Status</th>
+        <th scope="col">Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr v-for="(todo, index) in todoList" :key="todo.id">
+        <th scope="row">{{ index + 1 }}</th>
+        <td>
+          <template v-if="editIndex === index">
+            <input
+                v-model="editTask"
+                type="text"
+                class="form-control"
+                @keyup.enter="saveUpdate(todo.id, index)"
+                @blur="saveUpdate(todo.id, index)"
+            />
+          </template>
+          <template v-else>
+            {{ todo.task }}
+          </template>
+        </td>
+        <td>
+          <VueToggles
+              :value="todo.status ? true : false"
+              @click="changeStatus(todo.id, todo.status)"
+              width="50"
+          />
+        </td>
+        <td>
+          <button
+              data-mdb-button-init
+              data-mdb-ripple-init
+              class="btn btn-sm btn-secondary mr-1"
+              @click="editIndex === index ? saveUpdate(todo.id, index) : startEditing(todo.task, index)"
+          >
+            {{ editIndex === index ? 'Save' : 'Update' }}
+          </button>
+          <button
+              data-mdb-button-init
+              data-mdb-ripple-init
+              class="btn btn-sm btn-danger mr-1"
+              @click="deleteTodo(todo.id)"
+          >
+            Delete
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
   </div>
   <div v-else>
     <span>No Todos</span>
@@ -30,57 +61,74 @@
 </template>
 
 <script setup>
-  import {useTodoStore} from "../stores/useTodoStore";
-  import {onBeforeMount} from "vue";
-  import {ref} from "vue";
-  import api from "../api";
-  import {useToast} from 'vue-toast-notification';
-  import {TODO_DELETED} from "../constants";
-  import {TODO_STATUS_CHANGED} from "../constants";
-  import { VueToggles } from "vue-toggles";
+import { ref, onBeforeMount } from 'vue';
+import { useTodoStore } from "../stores/useTodoStore";
+import api from "../api";
+import { useToast } from 'vue-toast-notification';
+import {ERROR_PROCESSING, TODO_DELETED, TODO_STATUS_CHANGED} from "../constants";
+import { VueToggles } from "vue-toggles";
 
-  const todoStore = useTodoStore();
-  const $toast = useToast();
-  let todoList = ref([]);
-  let deleteStatus = ref(0);
+const todoStore = useTodoStore();
+const $toast = useToast();
+const todoList = ref([]);
+const editIndex = ref(null);
+const editTask = ref('');
 
-  name: "ShowTaskComponent";
+onBeforeMount(async () => {
+  await todoStore.getTodoList();
+  todoList.value = todoStore.todo;
+});
 
-  onBeforeMount(async () => {
-    await todoStore.getTodoList();
-    todoList.value = todoStore.todo;
-  })
-
-  const deleteTodo = async (id) => {
-    try {
-      const response = await api.delete('/deleteTask/'+id);
-      if(response.data.status){
-        $toast.success(TODO_DELETED);
-      }else{
-        console.log('error')
-      }
-    } catch (error) {
-      error = error.response
+const deleteTodo = async (id) => {
+  try {
+    const response = await api.delete('/deleteTask/' + id);
+    if (response.data.status) {
+      $toast.success(TODO_DELETED);
+      todoList.value = todoList.value.filter(todo => todo.id !== id);
+    } else {
+      console.log('Error deleting todo');
     }
+  } catch (error) {
+    console.error('Error:', error.response);
   }
+};
 
-  const changeStatus = async (id, status) => {
-    console.log('checking id',id)
-    console.log('checking status', status)
-    const changedStatus = status ? 0 : 1;
-    try {
-      const response = await api.patch('/changeTaskStatus/'+id,{"status" : changedStatus});
-      if(response.data.status){
-        $toast.success(TODO_STATUS_CHANGED);
-      }else{
-        console.log('error')
-      }
-    } catch (error) {
-      error = error.response
+const startEditing = (task, index) => {
+  editTask.value = task;
+  editIndex.value = index;
+};
+
+const saveUpdate = async (id, index) => {
+  try {
+    const response = await api.put('/updateTask/' + id, { task: editTask.value });
+    if (response.data.status) {
+      $toast.success(TODO_UPDATED);
+      todoList.value[index].task = editTask.value;
+      editIndex.value = null;
+    } else {
+      console.log(ERROR_PROCESSING);
     }
+  } catch (error) {
+    error = error.response
+    $toast.error(error.data.message);
   }
+};
+
+const changeStatus = async (id, status) => {
+  const changedStatus = status ? 0 : 1;
+  try {
+    const response = await api.patch('/changeTaskStatus/' + id, { "status": changedStatus });
+    if (response.data.status) {
+      $toast.success(TODO_STATUS_CHANGED);
+    } else {
+      console.log('Error changing status');
+    }
+  } catch (error) {
+    console.error('Error:', error.response);
+  }
+};
 </script>
 
 <style scoped>
-
+/* Add scoped styles here if needed */
 </style>

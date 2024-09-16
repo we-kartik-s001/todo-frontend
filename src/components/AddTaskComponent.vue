@@ -40,7 +40,7 @@
         console.log(todo)
         $toast.success(TODO_CREATED)
       }else{
-        $toast.success(ERROR_PROCESSING)
+        $toast.error(ERROR_PROCESSING)
       }
       clearForm();
     } catch (error) {
