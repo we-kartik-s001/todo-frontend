@@ -2,12 +2,13 @@
   <form method="post" class="row row-cols-lg-auto g-3 justify-content-center align-items-center mb-4 pb-2" @submit.prevent="submitForm">
     <div class="col-12">
       <div data-mdb-input-init class="form-outline">
-        <label class="form-label" for="form1">Task Title</label>
-        <input type="text" id="form1" class="form-control" v-model="taskdata.title"/>
-
-        <label class="form-label" for="form1">Task Description</label>
-        <textarea class="form-control" v-model="taskdata.description"></textarea>
-<!--        <input type="text" id="form1" class="form-control" v-model="title"/>-->
+        <label class="form-label" for="title">Task Title</label>
+        <input type="text" id="title" class="form-control" v-model="taskdata.title"/>
+        <label class="form-label" for="status">Status</label>
+        <select name="status" id="status" class="form-control" v-model="taskdata.status">
+          <option value=1 selected>Active</option>
+          <option value=0>Inactive</option>
+        </select>
       </div>
     </div>
 
@@ -22,27 +23,35 @@
   import {ref} from "vue";
   import {useToast} from 'vue-toast-notification';
   import 'vue-toast-notification/dist/theme-sugar.css';
+  import {TASK_CREATED} from "../constants";
+  import {ERROR_PROCESSING} from "../constants";
   name: "AddTaskComponent";
-  // let title = ref('');
-  // let description = ref('');
   const $toast = useToast();
   let tableContent = null;
   const taskdata = ref({
     title: '',
-    description: ''
+    status: 1
   })
   const submitForm = async () => {
     try {
       const response = await api.post('/createTask',taskdata.value);
-      tableContent = response.data;
-      if(response.data){
-        $toast.success('Task added successfully')
-        // this.taskdata = null
+      let todo = response.data.task;
+      if(response.data.status){
+        console.log(todo)
+        $toast.success(TASK_CREATED)
+      }else{
+        $toast.success(ERROR_PROCESSING)
       }
-      console.log(response.data)
+      clearForm();
     } catch (error) {
-      this.error = error.message || 'An error occurred';
-      console.error('API call error:', error);
+      error = error.response
+      $toast.error(error.data.message);
     }
   }
+
+  const clearForm = () => {
+    taskdata.value.title = '';
+    taskdata.value.status = 1;
+  }
+
 </script>
